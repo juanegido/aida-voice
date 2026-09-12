@@ -48,6 +48,21 @@ export function useRealtime() {
   const dcRef = useRef<RTCDataChannel | null>(null);
   const micRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Remote MCP calls are executed by OpenAI, but the model does not resume on
+  // its own: once the response is done and every MCP call has finished, the
+  // client must send `response.create` so the model can use the results.
+  const pendingMcpRef = useRef<Set<string>>(new Set());
+  const responseActiveRef = useRef(false);
+  const needsContinueRef = useRef(false);
+
+  const continueAfterMcp = useCallback(() => {
+    const dc = dcRef.current;
+    if (!dc || dc.readyState !== "open") return;
+    if (!needsContinueRef.current) return;
+    if (responseActiveRef.current || pendingMcpRef.current.size > 0) return;
+    needsContinueRef.current = false;
+    dc.send(JSON.stringify({ type: "response.create" }));
+  }, []);
 
   const sendToolResult = useCallback((callId: string, result: unknown) => {
     const dc = dcRef.current;
@@ -144,17 +159,37 @@ export function useRealtime() {
           } else if (name === "clear_charts") {
             setCharts([]);
             sendToolResult(call_id, { ok: true });
+          } else {
+            // The model guessed a tool name (typically before the MCP tool
+            // list arrived). Steer it back to the remote MCP tools.
+            sendToolResult(call_id, {
+              ok: false,
+              error: `Unknown tool "${name}". Use the data_foundation MCP tools instead.`,
+            });
           }
+          break;
+        }
+        case "response.created": {
+          responseActiveRef.current = true;
+          break;
+        }
+        case "response.done": {
+          responseActiveRef.current = false;
+          continueAfterMcp();
           break;
         }
         case "response.mcp_call.in_progress": {
           const { item_id } = event as McpCallInProgressEvent;
+          pendingMcpRef.current.add(item_id);
+          needsContinueRef.current = true;
           upsertToolCall(item_id, { label: "Data Foundation", status: "running" });
           break;
         }
         case "response.mcp_call.failed": {
           const { item_id } = event as McpCallFailedEvent;
+          pendingMcpRef.current.delete(item_id);
           upsertToolCall(item_id, { status: "failed" });
+          continueAfterMcp();
           break;
         }
         case "response.mcp_call_arguments.done": {
@@ -165,18 +200,20 @@ export function useRealtime() {
         case "response.output_item.done": {
           const { item } = event as OutputItemDoneEvent;
           if (item.type === "mcp_call") {
+            pendingMcpRef.current.delete(item.id);
             upsertToolCall(item.id, {
               label: item.name ?? "Data Foundation",
               status: item.error ? "failed" : "done",
               args: item.arguments,
               output: item.output,
             });
+            continueAfterMcp();
           }
           break;
         }
         case "error": {
           const { error: err } = event as ErrorEvent;
-          setStatus("error");
+          // Non-fatal: the session stays live, just surface the message.
           setError(err.message);
           break;
         }
@@ -184,10 +221,13 @@ export function useRealtime() {
           break;
       }
     },
-    [sendToolResult, upsertToolCall],
+    [sendToolResult, upsertToolCall, continueAfterMcp],
   );
 
   const cleanup = useCallback(() => {
+    pendingMcpRef.current.clear();
+    responseActiveRef.current = false;
+    needsContinueRef.current = false;
     dcRef.current?.close();
     dcRef.current = null;
     micRef.current?.getTracks().forEach((t) => t.stop());
