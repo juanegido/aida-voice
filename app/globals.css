@@ -839,7 +839,8 @@ a {
 
 .chart-svg .chart-value-label {
   fill: var(--fg);
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .chart-svg .chart-legend text {
@@ -993,11 +994,14 @@ a {
 /* KPI tiles */
 
 .kpi-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
   gap: 16px;
   width: 100%;
-  align-content: center;
+  height: 100%;
 }
 
 .kpi-tile {
@@ -1008,6 +1012,8 @@ a {
   background: var(--ink-2);
   border: 1px solid var(--border);
   border-radius: 14px;
+  flex: 1 1 220px;
+  max-width: 480px;
 }
 
 .kpi-tile-label {
@@ -1053,6 +1059,139 @@ a {
   background: rgba(244, 245, 251, 0.06);
 }
 
+/* Horizontal bar chart (many categories / long labels) */
+
+.bar-chart-h {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  gap: 10px;
+}
+
+.bar-chart-h-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.bar-row-h {
+  display: grid;
+  grid-template-columns: minmax(90px, 160px) 1fr;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 0;
+  min-height: 28px;
+  max-height: 64px;
+}
+
+.bar-row-h-label {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-row-h-bars {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  min-width: 0;
+}
+
+.bar-row-h-track {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 16px;
+  background: var(--ink-2);
+  border-radius: 6px;
+}
+
+.bar-row-h-bar {
+  position: relative;
+  height: 100%;
+  min-width: 3px;
+  background: var(--chart-1);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+  box-sizing: border-box;
+  transform-origin: left;
+  animation: bar-grow-x 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.bar-row-h-value {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.bar-row-h-value-inside {
+  color: #fff;
+}
+
+.bar-row-h-value-outside {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  color: var(--fg);
+}
+
+.bar-row-h-compare-track {
+  position: relative;
+  height: 30%;
+  min-height: 6px;
+  border-radius: 4px;
+}
+
+.bar-row-h-compare-bar {
+  height: 100%;
+  min-width: 3px;
+  background: var(--compare);
+  border-radius: 4px;
+  transform-origin: left;
+  animation: bar-grow-x 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.bar-chart-h-legend {
+  display: flex;
+  gap: 20px;
+  justify-content: flex-end;
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.bar-chart-h-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-legend-swatch-html {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--chart-1);
+  display: inline-block;
+}
+
+.chart-legend-swatch-html-compare {
+  background: var(--compare);
+}
+
 /* Funnel chart */
 
 .funnel-chart {
@@ -1060,6 +1199,7 @@ a {
   flex-direction: column;
   gap: 14px;
   width: 100%;
+  height: 100%;
   justify-content: center;
 }
 
@@ -1081,6 +1221,8 @@ a {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .funnel-row {
@@ -1088,6 +1230,9 @@ a {
   grid-template-columns: 120px 1fr 90px;
   align-items: center;
   gap: 12px;
+  flex: 1 1 0;
+  min-height: 34px;
+  max-height: 80px;
 }
 
 .funnel-row-label {
@@ -1102,7 +1247,7 @@ a {
   background: var(--ink-2);
   border-radius: 8px;
   overflow: hidden;
-  height: 34px;
+  height: 100%;
 }
 
 .funnel-row-bar {

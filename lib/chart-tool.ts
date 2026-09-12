@@ -99,6 +99,15 @@ export const RENDER_CHART_TOOL = {
         description:
           "Optional one-line insight shown in the caption band, e.g. 'Peaked on Tuesday'.",
       },
+      replace: {
+        type: "boolean",
+        description:
+          "Set true to replace ALL visuals currently on screen with this one, which becomes the " +
+          "new hero. Use this whenever the user asks to change, filter, or refine what they are " +
+          "looking at - never call clear_charts and render_chart in the same turn for that. " +
+          "Defaults to false, which adds this visual alongside the others (or updates one with " +
+          "a matching title in place).",
+      },
     },
     required: ["title", "kind", "series"],
   },
@@ -142,6 +151,12 @@ export type ChartSpec = {
   seriesLabel?: string;
   compareLabel?: string;
   note?: string;
+  /**
+   * When true, this chart should replace ALL current visuals and become the
+   * hero (see lib/use-realtime.ts). Not persisted meaningfully beyond the
+   * moment it is applied - purely an instruction from the tool call.
+   */
+  replace?: boolean;
 };
 
 const CHART_KINDS: ChartKind[] = ["bar", "line", "pie", "kpi", "funnel"];
@@ -217,6 +232,7 @@ export function parseChartSpec(raw: unknown): ChartSpec | null {
     typeof obj.compareLabel === "string" && obj.compareLabel.trim() !== ""
       ? obj.compareLabel.trim()
       : undefined;
+  const replace = obj.replace === true;
 
   return {
     id: newId(),
@@ -228,5 +244,6 @@ export function parseChartSpec(raw: unknown): ChartSpec | null {
     seriesLabel,
     compareLabel,
     note,
+    replace,
   };
 }

@@ -35,7 +35,7 @@ export type ToolCallEntry = {
   output?: string;
 };
 
-const MAX_CHARTS = 6;
+const MAX_CHARTS = 8;
 
 export function useRealtime() {
   const [status, setStatus] = useState<ConnectionStatus>("idle");
@@ -55,7 +55,12 @@ export function useRealtime() {
   const responseActiveRef = useRef(false);
   const needsContinueRef = useRef(false);
 
-  const continueAfterMcp = useCallback(() => {
+  // Gate for `response.create`: the Realtime API rejects a new response while
+  // one is already in flight ("Conversation already has an active response in
+  // progress"), so every caller that wants the model to resume - after an MCP
+  // call or after a local tool result - just flags `needsContinueRef` and
+  // asks this to fire only once the coast is clear.
+  const continueWhenIdle = useCallback(() => {
     const dc = dcRef.current;
     if (!dc || dc.readyState !== "open") return;
     if (!needsContinueRef.current) return;
@@ -64,21 +69,28 @@ export function useRealtime() {
     dc.send(JSON.stringify({ type: "response.create" }));
   }, []);
 
-  const sendToolResult = useCallback((callId: string, result: unknown) => {
-    const dc = dcRef.current;
-    if (!dc || dc.readyState !== "open") return;
-    dc.send(
-      JSON.stringify({
-        type: "conversation.item.create",
-        item: {
-          type: "function_call_output",
-          call_id: callId,
-          output: JSON.stringify(result),
-        },
-      }),
-    );
-    dc.send(JSON.stringify({ type: "response.create" }));
-  }, []);
+  const sendToolResult = useCallback(
+    (callId: string, result: unknown) => {
+      const dc = dcRef.current;
+      if (!dc || dc.readyState !== "open") return;
+      dc.send(
+        JSON.stringify({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify(result),
+          },
+        }),
+      );
+      // Do not send `response.create` immediately - the model's current
+      // response may still be active. Go through the same idle gate as MCP
+      // calls so we never race an in-progress response.
+      needsContinueRef.current = true;
+      continueWhenIdle();
+    },
+    [continueWhenIdle],
+  );
 
   const upsertToolCall = useCallback((id: string, patch: Partial<ToolCallEntry>) => {
     setToolCalls((prev) => {
@@ -151,7 +163,18 @@ export function useRealtime() {
               parsed = null;
             }
             if (parsed) {
-              setCharts((prev) => [parsed as ChartSpec, ...prev].slice(0, MAX_CHARTS));
+              const spec = parsed;
+              setCharts((prev) => {
+                if (spec.replace) return [spec];
+                const key = spec.title.trim().toLowerCase();
+                const idx = prev.findIndex((c) => c.title.trim().toLowerCase() === key);
+                if (idx !== -1) {
+                  const next = [...prev];
+                  next[idx] = { ...spec, id: prev[idx].id };
+                  return next;
+                }
+                return [spec, ...prev].slice(0, MAX_CHARTS);
+              });
               sendToolResult(call_id, { ok: true });
             } else {
               sendToolResult(call_id, { ok: false, error: "invalid chart spec" });
@@ -175,7 +198,7 @@ export function useRealtime() {
         }
         case "response.done": {
           responseActiveRef.current = false;
-          continueAfterMcp();
+          continueWhenIdle();
           break;
         }
         case "response.mcp_call.in_progress": {
@@ -189,7 +212,7 @@ export function useRealtime() {
           const { item_id } = event as McpCallFailedEvent;
           pendingMcpRef.current.delete(item_id);
           upsertToolCall(item_id, { status: "failed" });
-          continueAfterMcp();
+          continueWhenIdle();
           break;
         }
         case "response.mcp_call_arguments.done": {
@@ -207,13 +230,21 @@ export function useRealtime() {
               args: item.arguments,
               output: item.output,
             });
-            continueAfterMcp();
+            continueWhenIdle();
           }
           break;
         }
         case "error": {
           const { error: err } = event as ErrorEvent;
-          // Non-fatal: the session stays live, just surface the message.
+          // "Conversation already has an active response in progress" can
+          // happen benignly when our idle gate races the server's own
+          // bookkeeping - it is not fatal and should never surface to the
+          // user. Log it for debugging and swallow everything else the
+          // same way (non-fatal: the session stays live).
+          if (err.code === "conversation_already_has_active_response") {
+            console.warn("Realtime: ignored active-response error", err);
+            break;
+          }
           setError(err.message);
           break;
         }
@@ -221,7 +252,7 @@ export function useRealtime() {
           break;
       }
     },
-    [sendToolResult, upsertToolCall, continueAfterMcp],
+    [sendToolResult, upsertToolCall, continueWhenIdle],
   );
 
   const cleanup = useCallback(() => {

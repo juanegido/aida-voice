@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChartSpec } from "@/lib/chart-tool";
-import { formatMetric } from "@/lib/format";
+import { formatMetric, truncateLabel } from "@/lib/format";
 
 export function FunnelChart({ chart }: { chart: ChartSpec }) {
   const first = chart.series[0];
@@ -23,7 +23,9 @@ export function FunnelChart({ chart }: { chart: ChartSpec }) {
           const stepConversion = prevValue && prevValue !== 0 ? point.value / prevValue : null;
           return (
             <div className="funnel-row" key={`${point.label}-${i}`}>
-              <div className="funnel-row-label">{point.label}</div>
+              <div className="funnel-row-label" title={point.label}>
+                {truncateLabel(point.label, 22)}
+              </div>
               <div className="funnel-row-track">
                 <div className="funnel-row-bar" style={{ width: `${widthPct}%` }}>
                   <span className="funnel-row-value">

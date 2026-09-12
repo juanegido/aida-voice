@@ -57,6 +57,39 @@ export function formatMetric(
   return opts?.unit ? `${n} ${opts.unit}` : n;
 }
 
+const NICE_STEP_MULTIPLES = [1, 2, 2.5, 5, 10];
+
+/**
+ * Standard "nice number" tick algorithm: picks a step from {1, 2, 2.5, 5}×10^n
+ * so axis ticks read as round numbers (e.g. €500K, €1M, €1.5M, €2M) instead of
+ * whatever `max / count` happens to divide into. Returns ascending tick values
+ * from 0 up to the smallest nice number ≥ `max`.
+ */
+export function niceTicks(max: number, count = 4): number[] {
+  if (!Number.isFinite(max) || max <= 0) return [0, 1];
+  const rawStep = max / Math.max(1, count);
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalized = rawStep / magnitude;
+  const niceMultiple = NICE_STEP_MULTIPLES.find((m) => m >= normalized) ?? 10;
+  const step = niceMultiple * magnitude;
+  const top = Math.ceil(max / step) * step;
+  const ticks: number[] = [];
+  for (let v = 0; v <= top + step / 1000; v += step) {
+    ticks.push(Math.round(v * 1e6) / 1e6);
+  }
+  return ticks;
+}
+
+/**
+ * Truncates a label to `max` characters, adding an ellipsis. Shared by every
+ * chart so labels never overlap or overflow their allotted space; pair with a
+ * native `title` attribute/element so the full text is still available.
+ */
+export function truncateLabel(label: string, max: number): string {
+  if (label.length <= max) return label;
+  return `${label.slice(0, Math.max(1, max - 1))}…`;
+}
+
 export type Delta = {
   text: string;
   direction: "up" | "down" | "flat";

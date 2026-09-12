@@ -1,7 +1,7 @@
 "use client";
 
 import type { ChartSpec } from "@/lib/chart-tool";
-import { formatMetric } from "@/lib/format";
+import { formatMetric, truncateLabel } from "@/lib/format";
 
 const SIZE = 320;
 const CENTER = SIZE / 2;
@@ -80,7 +80,9 @@ export function PieChart({ chart }: { chart: ChartSpec }) {
         {arcs.map((arc, i) => (
           <li key={`${arc.point.label}-${i}`} className="pie-legend-row">
             <span className="pie-legend-swatch" style={{ background: arc.color }} aria-hidden="true" />
-            <span className="pie-legend-label">{arc.point.label}</span>
+            <span className="pie-legend-label" title={arc.point.label}>
+              {truncateLabel(arc.point.label, 20)}
+            </span>
             <span className="pie-legend-value">
               {formatMetric(arc.point.value, chart.metricKind, { compact: true, unit: chart.unit })}
             </span>

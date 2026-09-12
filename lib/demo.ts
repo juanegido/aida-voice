@@ -58,4 +58,23 @@ export const DEMO_CHARTS: ChartSpec[] = [
     ],
     note: "The biggest drop is between product views and add to cart.",
   },
+  {
+    id: "demo-stores",
+    title: "Sales by store, Iberia, 1–12 Sep 2026",
+    kind: "bar",
+    metricKind: "currency",
+    series: [
+      { label: "Atida ES", value: 1800000 },
+      { label: "Dosfarma DF", value: 771800 },
+      { label: "Atida PT", value: 240000 },
+      { label: "Mifarma IT", value: 79400 },
+      { label: "Mifarma GB", value: 59000 },
+      { label: "Mifarma FR", value: 35500 },
+      { label: "Mifarma DE", value: 15000 },
+      { label: "Mifarma NL", value: 14600 },
+      { label: "Mifarma IE", value: 6400 },
+      { label: "Mifarma BE", value: 4900 },
+    ],
+    note: "Atida ES is 60% of the total.",
+  },
 ];

@@ -64,6 +64,11 @@ VISUALS
   named like _comp), and set compareLabel to what it is being compared against (e.g.
   "Last week"). This is what lets the chart show a delta - do not skip it when the data exists.
 - Call clear_charts when the user changes topic and asks to clear the view.
+- To change, filter or refine a visual, call render_chart again with \`replace: true\`; the new
+  visual takes the screen. Never call clear_charts and render_chart in the same turn. Call
+  clear_charts only when the user explicitly asks to clear the screen.
+- Keep series labels short (≤ 14 characters, e.g. "Mifarma IT", "Skincare"); when a report
+  returns more than 12 rows, keep the top 10 and say so.
 
 FAILURES
 - If a tool call fails or returns no data, say so plainly and suggest the closest question

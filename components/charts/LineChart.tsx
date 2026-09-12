@@ -1,16 +1,12 @@
 "use client";
 
 import type { ChartSpec } from "@/lib/chart-tool";
-import { formatMetric } from "@/lib/format";
+import { formatMetric, niceTicks, truncateLabel } from "@/lib/format";
 
-const VIEW_WIDTH = 640;
-const VIEW_HEIGHT = 360;
-const PADDING = { top: 24, right: 48, bottom: 40, left: 56 };
-
-function truncateLabel(label: string, max = 12): string {
-  if (label.length <= max) return label;
-  return `${label.slice(0, max - 1)}…`;
-}
+const VIEW_WIDTH = 880;
+const VIEW_HEIGHT = 320;
+const PADDING = { top: 28, right: 48, bottom: 40, left: 70 };
+const MAX_X_LABELS = 8;
 
 export function LineChart({ chart }: { chart: ChartSpec }) {
   const plotWidth = VIEW_WIDTH - PADDING.left - PADDING.right;
@@ -20,15 +16,23 @@ export function LineChart({ chart }: { chart: ChartSpec }) {
     ...chart.series.map((p) => Math.max(p.value, p.previous ?? 0)),
     1,
   );
+  const ticks = niceTicks(maxValue, 4);
+  const niceMax = ticks[ticks.length - 1] || 1;
   const n = chart.series.length;
   const step = n > 1 ? plotWidth / (n - 1) : 0;
+  // Show at most MAX_X_LABELS labels (every nth), always including the first
+  // and last point so the visible range is never ambiguous.
+  const labelStep = n > MAX_X_LABELS ? Math.ceil((n - 1) / (MAX_X_LABELS - 1)) : 1;
+  const shownLabelIndices = new Set<number>();
+  for (let i = 0; i < n; i += labelStep) shownLabelIndices.add(i);
+  if (n > 0) shownLabelIndices.add(n - 1);
 
   const points = chart.series.map((point, i) => {
     const x = PADDING.left + step * i;
-    const y = PADDING.top + plotHeight - (point.value / maxValue) * plotHeight;
+    const y = PADDING.top + plotHeight - (point.value / niceMax) * plotHeight;
     const prevY =
       point.previous !== undefined
-        ? PADDING.top + plotHeight - (point.previous / maxValue) * plotHeight
+        ? PADDING.top + plotHeight - (point.previous / niceMax) * plotHeight
         : null;
     return { x, y, prevY, point };
   });
@@ -43,7 +47,6 @@ export function LineChart({ chart }: { chart: ChartSpec }) {
   const baseline = PADDING.top + plotHeight;
   const areaPath = `${PADDING.left},${baseline} ${linePath} ${PADDING.left + step * (n - 1)},${baseline}`;
   const last = points[points.length - 1];
-  const gridFractions = [0.25, 0.5, 0.75, 1];
 
   return (
     <svg
@@ -53,13 +56,13 @@ export function LineChart({ chart }: { chart: ChartSpec }) {
       role="img"
       aria-label={chart.title}
     >
-      {gridFractions.map((fraction) => {
-        const y = PADDING.top + plotHeight * (1 - fraction);
+      {ticks.slice(1).map((tick) => {
+        const y = PADDING.top + plotHeight * (1 - tick / niceMax);
         return (
-          <g key={fraction}>
+          <g key={tick}>
             <line className="chart-gridline" x1={PADDING.left} x2={VIEW_WIDTH - PADDING.right} y1={y} y2={y} />
             <text x={PADDING.left - 8} y={y + 3} textAnchor="end">
-              {formatMetric(maxValue * fraction, chart.metricKind, { compact: true, unit: chart.unit })}
+              {formatMetric(tick, chart.metricKind, { compact: true, unit: chart.unit })}
             </text>
           </g>
         );
@@ -70,10 +73,12 @@ export function LineChart({ chart }: { chart: ChartSpec }) {
       {points.map(({ x, y, point }, i) => (
         <g key={`${point.label}-${i}`}>
           <circle className="chart-point" cx={x} cy={y} r={3.5} />
-          <text x={x} y={VIEW_HEIGHT - PADDING.bottom + 18} textAnchor="middle">
-            <title>{point.label}</title>
-            {truncateLabel(point.label)}
-          </text>
+          {shownLabelIndices.has(i) && (
+            <text x={x} y={VIEW_HEIGHT - PADDING.bottom + 18} textAnchor="middle">
+              <title>{point.label}</title>
+              {truncateLabel(point.label, 12)}
+            </text>
+          )}
         </g>
       ))}
       {last && (
