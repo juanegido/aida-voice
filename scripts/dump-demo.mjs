@@ -17,7 +17,8 @@ const { chromium } = require(
   "/Users/juanegido/Code/Atida/data/ai/aida/.claude/worktrees/aida-acronym-atida-6714f1/node_modules/@playwright/test/index.js",
 );
 
-const OUT_DIR = "/Users/juanegido/lumai-space/aida-voice-hackathon/ref/";
+const OUT_DIR =
+  process.argv[2] ?? "/Users/juanegido/lumai-space/aida-voice-hackathon/ref/";
 const BASE_URL = "http://localhost:3200";
 const STAGE_NAMES = ["stage-kpi", "stage-bar", "stage-funnel", "stage-stores"];
 
