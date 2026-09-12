@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChartSpec } from "@/lib/chart-tool";
 import { parseChartSpec } from "@/lib/chart-tool";
 import type {
@@ -314,5 +314,31 @@ export function useRealtime() {
     };
   }, [cleanup]);
 
-  return { status, error, transcript, charts, toolCalls, start, stop };
+  const lastAssistant = useMemo(() => {
+    for (let i = transcript.length - 1; i >= 0; i--) {
+      const entry = transcript[i];
+      if (entry.role === "assistant") return { text: entry.text, final: entry.final };
+    }
+    return null;
+  }, [transcript]);
+
+  const lastUser = useMemo(() => {
+    for (let i = transcript.length - 1; i >= 0; i--) {
+      const entry = transcript[i];
+      if (entry.role === "user") return entry.text;
+    }
+    return null;
+  }, [transcript]);
+
+  return {
+    status,
+    error,
+    transcript,
+    charts,
+    toolCalls,
+    start,
+    stop,
+    lastAssistant,
+    lastUser,
+  };
 }

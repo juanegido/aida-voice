@@ -35,8 +35,32 @@ Data warehouse
 ```
 
 Two client-side function tools, `render_chart` and `clear_charts`, are executed directly in the
-browser: the model calls them over the WebRTC data channel, the UI draws (or clears) a chart,
+browser: the model calls them over the WebRTC data channel, the UI draws (or clears) a visual,
 and the browser replies with a small JSON ack — no server round trip.
+
+## Visuals
+
+As soon as the agent renders a visual, the page switches into **stage mode**: the visual takes
+most of the screen, the assistant's speech becomes a large caption underneath it, and the
+transcript and tool trace move into a history drawer. Before any visual exists, the page stays
+in a simplified **conversation mode** — a centered voice orb, suggested prompts, and the caption.
+
+Five visual kinds, picked by the model based on the shape of the answer:
+
+- **kpi** — 1 to 4 headline numbers, each with an optional delta chip against a `previous` value.
+- **funnel** — a step sequence that narrows down (sessions → carts → checkouts → orders), with
+  the conversion rate between consecutive steps and the overall conversion in the header.
+- **pie** — a share/mix of a whole, as a donut with a side legend (label, value, share %).
+- **line** — a trend over dates, with an optional dashed comparison series.
+- **bar** — a ranking or comparison between a few items, with an optional muted comparison bar.
+
+Every visual sets a `metricKind` (`currency`, `percent`, `count`, `ratio`) so numbers format
+consistently, and fills `previous` on each point whenever the underlying report returned a
+comparison column — that is what powers the delta chips and comparison bars/lines. All charts
+share a 5-color palette and render as viewBox-based SVG with an entrance animation.
+
+Add `?demo=1` to the URL to seed three visuals (a KPI row, a bar ranking, and a funnel) plus a
+sample caption without connecting a voice session — useful for screenshots and the demo video.
 
 ## Run it
 
@@ -51,17 +75,22 @@ Open http://localhost:3000, allow microphone access, and tap the orb to start ta
 
 ## Demo script
 
-1. "How did sales close yesterday?"
-2. "Show me the top 5 categories this week versus last week."
-3. "Which SKUs are out of stock in Spain right now?"
-4. "How is the current marketing spend trending this month?"
-5. "Clear the charts and tell me one thing I should look at today."
+1. "How did sales close yesterday?" — the screen switches to stage mode with a **KPI** row
+   (revenue, orders, conversion, AOV), each with a delta chip against the same day last week.
+2. "Show me the top 5 categories this week versus last week." — a **bar** chart ranks categories
+   with a muted comparison bar per item.
+3. "Where do we lose customers in checkout?" — a **funnel** from sessions down to orders, with
+   the drop-off between each step called out.
+4. "Which SKUs are out of stock in Spain right now?"
+5. "How is the current marketing spend trending this month?"
+6. "Clear the charts and tell me one thing I should look at today." — back to conversation mode.
 
 ## Built during the hackathon
 
-Everything in this repository: the voice UI (orb, transcript, chart panel, tool trace), the
-session route that mints ephemeral Realtime credentials and wires up the remote MCP tool, the
-two client-side chart tools and their renderer, and the system prompt.
+Everything in this repository: the voice UI (stage layout, voice orb, caption, filmstrip,
+history drawer with transcript and tool trace), the session route that mints ephemeral Realtime
+credentials and wires up the remote MCP tool, the two client-side visual tools and their five
+chart renderers, and the system prompt.
 
 ## Reused
 
