@@ -90,7 +90,7 @@ export const RENDER_CHART_TOOL = {
       },
       compareLabel: {
         type: "string",
-        description: "Legend label for the `previous` values, e.g. 'Last week'.",
+        description: "Short name of the comparison period, shown after "vs" in delta chips and legends, e.g. "same day last week" or "last week". Do not include the word "vs".",
       },
       note: {
         type: "string",

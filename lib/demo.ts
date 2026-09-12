@@ -18,7 +18,7 @@ export const DEMO_CHARTS: ChartSpec[] = [
     title: "Yesterday vs. same day last week",
     kind: "kpi",
     metricKind: "currency",
-    compareLabel: "Yesterday vs. same day last week",
+    compareLabel: "same day last week",
     series: [
       { label: "Revenue", value: 184320, previous: 176900 },
       { label: "Orders", value: 1781, previous: 1713, metricKind: "count" },
