@@ -45,9 +45,6 @@ export async function POST(req: NextRequest) {
             {
               type: "mcp",
               server_label: "data_foundation",
-              server_description:
-                "Atida Data Foundation: sales, trading day, marketing, pricing, catalog, " +
-                "customers, promos and stock reports over the company data warehouse.",
               server_url: process.env.DATA_FOUNDATION_MCP_URL,
               authorization: process.env.DATA_FOUNDATION_MCP_TOKEN,
               require_approval: "never",
