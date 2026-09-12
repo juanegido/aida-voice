@@ -90,7 +90,9 @@ export const RENDER_CHART_TOOL = {
       },
       compareLabel: {
         type: "string",
-        description: "Short name of the comparison period, shown after "vs" in delta chips and legends, e.g. "same day last week" or "last week". Do not include the word "vs".",
+        description:
+          "Short name of the comparison period, shown after 'vs' in delta chips and legends, " +
+          "e.g. 'same day last week' or 'last week'. Do not include the word 'vs'.",
       },
       note: {
         type: "string",
